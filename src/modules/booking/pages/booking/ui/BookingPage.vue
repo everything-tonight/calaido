@@ -1,0 +1,80 @@
+<script setup lang="ts">
+import type { RestaurantZone } from ':modules/booking/entities/restaurant'
+import type { Booking } from '../model'
+
+import { useRestaurantStore } from ':modules/booking/entities/restaurant/model/restaurant.store'
+import BookingCalendar from ':modules/booking/widgets/booking-calendar/ui/BookingCalendar.vue'
+import { BookingFilters, useBookingFilters } from ':modules/booking/widgets/booking-filters'
+import { useQuery } from '@pinia/colada'
+import { useSeoMeta } from '@unhead/vue'
+import { storeToRefs } from 'pinia'
+import { watch } from 'vue'
+import { getBookingService } from '../api/booking-get.service'
+
+useSeoMeta({
+  title: 'Бронирование',
+})
+
+const restaurantStore = useRestaurantStore()
+
+const { restaurant } = storeToRefs(restaurantStore)
+const { setRestaurant } = restaurantStore
+
+const {
+  filters,
+  availableDates,
+  setAvailableDates,
+  availableZones,
+  setAvailableZones,
+} = useBookingFilters()
+
+const { data } = useQuery({
+  key: [restaurant.value.id, 'booking'],
+  query: getBookingService,
+})
+
+function bootstrapBookingPage(booking: Booking | undefined) {
+  if (booking) {
+    setRestaurant({
+      id: booking.restaurant.id,
+      restaurant_name: booking.restaurant.restaurant_name,
+      timezone: booking.restaurant.timezone,
+      opening_time: booking.restaurant.opening_time,
+      closing_time: booking.restaurant.closing_time,
+    })
+
+    setAvailableDates(booking.available_days)
+
+    const collection = new Set<RestaurantZone>()
+
+    for (const table of booking.tables) {
+      collection.add(table.zone)
+    }
+
+    setAvailableZones(Array.from(collection))
+  }
+}
+
+watch(data, bootstrapBookingPage)
+</script>
+
+<template>
+  <div class="flex flex-col mx-5 grow min-h-0">
+    <header class="mt-8">
+      <h1 class="text-xl leading-7">
+        Бронирование
+      </h1>
+    </header>
+
+    <BookingFilters
+      v-model="filters"
+      :available-dates="availableDates"
+      :available-zones="availableZones"
+      class="mt-4"
+    />
+
+    <main class="flex flex-col grow min-h-0 overflow-hidden py-4">
+      <BookingCalendar :restaurant="restaurant" />
+    </main>
+  </div>
+</template>
