@@ -34,6 +34,13 @@ const timeSlots = computed(() => {
 
 const tooltipRef = useTemplateRef('calendarCellTooltip')
 const transparentRectRef = useTemplateRef('transparentRect')
+const gridRef = useTemplateRef('gridRef')
+
+const CELL_WIDTH = 72
+const CELL_HEIGHT = 56
+
+const selectedColRange = ref<[number, number] | null>(null)
+const selectedSectionRowRange = ref<[number, number] | null>(null)
 
 const totalHeight = 56
 const totalSections = 6
@@ -52,7 +59,7 @@ function moveMouseInTimeSlot(e: MouseEvent) {
     return
   }
 
-  const target = e.target as HTMLDivElement
+  const target = e.currentTarget as HTMLDivElement
   const rect = target.getBoundingClientRect()
   let timeslot = target.getAttribute('data-timeslot')
 
@@ -73,6 +80,9 @@ function moveMouseInTimeSlot(e: MouseEvent) {
     tooltipRef.value.textContent = format(addMinutes(timeslot, 5 * sectionIndex), 'HH:mm')
     tooltipRef.value.style.left = `${globalLeft}px`
     tooltipRef.value.style.top = `${globalTop}px`
+
+    tooltipRef.value.style.width = `${72}px`
+    tooltipRef.value.style.height = `${8}px`
   }
 }
 
@@ -94,17 +104,45 @@ function selecting(e: MouseEvent) {
     currentX.value = e.clientX
     currentY.value = e.clientY
 
-    const width = Math.abs(currentX.value - startX.value)
-    const height = Math.abs(currentY.value - startY.value)
+    if (gridRef.value) {
+      const gridRect = gridRef.value.getBoundingClientRect()
 
-    const left = currentX.value < startX.value ? currentX.value : startX.value
-    const top = currentY.value < startY.value ? currentY.value : startY.value
+      function getColRowSection(clientX: number, clientY: number) {
+        const x = clientX - gridRect.left
+        const y = clientY - gridRect.top
+        const col = Math.max(0, Math.min(49, Math.floor(x / CELL_WIDTH)))
+        const row = Math.max(0, Math.min(timeSlots.value.length - 1, Math.floor(y / CELL_HEIGHT)))
+        const yInCell = y - row * CELL_HEIGHT
+        const section = Math.min(totalSections - 1, Math.floor(yInCell / sectionHeight))
+        return { col, row, section }
+      }
 
-    if (transparentRectRef.value) {
-      transparentRectRef.value.style.top = `${top}px`
-      transparentRectRef.value.style.left = `${left}px`
-      transparentRectRef.value.style.width = `${width}px`
-      transparentRectRef.value.style.height = `${height}px`
+      const start = getColRowSection(startX.value, startY.value)
+      const current = getColRowSection(currentX.value, currentY.value)
+
+      const startSectionRow = start.row * totalSections + start.section
+      const currentSectionRow = current.row * totalSections + current.section
+
+      const snappedLeft = gridRect.left + Math.min(start.col, current.col) * CELL_WIDTH
+      const snappedTop = gridRect.top + Math.min(startSectionRow, currentSectionRow) * sectionHeight
+      const snappedWidth = (Math.abs(current.col - start.col) + 1) * CELL_WIDTH
+      const snappedHeight = (Math.abs(currentSectionRow - startSectionRow) + 1) * sectionHeight
+
+      if (transparentRectRef.value) {
+        transparentRectRef.value.style.left = `${snappedLeft}px`
+        transparentRectRef.value.style.top = `${snappedTop}px`
+        transparentRectRef.value.style.width = `${snappedWidth}px`
+        transparentRectRef.value.style.height = `${snappedHeight}px`
+      }
+
+      selectedColRange.value = [
+        Math.min(start.col, current.col),
+        Math.max(start.col, current.col),
+      ]
+      selectedSectionRowRange.value = [
+        Math.min(startSectionRow, currentSectionRow),
+        Math.max(startSectionRow, currentSectionRow),
+      ]
     }
   }
 }
@@ -114,6 +152,9 @@ function stopSelection() {
 
   startX.value = 0
   startY.value = 0
+
+  selectedColRange.value = null
+  selectedSectionRowRange.value = null
 
   if (transparentRectRef.value) {
     transparentRectRef.value.style.width = `${0}px`
@@ -141,12 +182,13 @@ function stopSelection() {
     </div>
 
     <div
+      ref="gridRef"
       class="flex"
       @mousedown.prevent="startSelection"
       @mousemove="selecting"
       @mouseup="stopSelection"
     >
-      <article v-for="table in Array(50)" :key="table">
+      <article v-for="(_, colIndex) in Array(50)" :key="colIndex">
         <div
           v-for="timeSlot in timeSlots"
           :key="timeSlot"
