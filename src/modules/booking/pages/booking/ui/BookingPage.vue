@@ -17,8 +17,8 @@ useSeoMeta({
 
 const restaurantStore = useRestaurantStore()
 
-const { restaurant } = storeToRefs(restaurantStore)
-const { setRestaurant } = restaurantStore
+const { restaurant, tables } = storeToRefs(restaurantStore)
+const { setRestaurant, setTables } = restaurantStore
 
 const {
   filters,
@@ -52,6 +52,7 @@ function bootstrapBookingPage(booking: Booking | undefined) {
     }
 
     setAvailableZones(Array.from(collection))
+    setTables(booking.tables)
   }
 }
 
@@ -74,7 +75,16 @@ watch(data, bootstrapBookingPage)
     />
 
     <main class="flex flex-col grow min-h-0 overflow-hidden py-4">
-      <BookingCalendar :restaurant="restaurant" />
+      <BookingCalendar
+        :timestamp-start="restaurant.opening_time"
+        :timestamp-end="restaurant.closing_time"
+        :timestamp-range="30"
+        :items="tables"
+      >
+        <template #item>
+          <article>Элемент</article>
+        </template>
+      </BookingCalendar>
     </main>
   </div>
 </template>
