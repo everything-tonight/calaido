@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-dvh bg-[#f4f4f6]">
+  <div class="flex flex-col h-dvh bg-system-background">
     <RouterView />
   </div>
 </template>
