@@ -8,7 +8,7 @@ import { BookingFilters, useBookingFilters } from ':modules/booking/widgets/book
 import { useQuery } from '@pinia/colada'
 import { useSeoMeta } from '@unhead/vue'
 import { storeToRefs } from 'pinia'
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { getBookingService } from '../api/booking-get.service'
 
 useSeoMeta({
@@ -56,6 +56,8 @@ function bootstrapBookingPage(booking: Booking | undefined) {
   }
 }
 
+const range = ref(30)
+
 watch(data, bootstrapBookingPage)
 </script>
 
@@ -75,10 +77,12 @@ watch(data, bootstrapBookingPage)
     />
 
     <main class="flex flex-col grow min-h-0 overflow-hidden py-4">
+      <input v-model="range" type="range" min="10" max="60" step="5" class="w-20">
+
       <BookingCalendar
         :timestamp-start="restaurant.opening_time"
         :timestamp-end="restaurant.closing_time"
-        :timestamp-range="30"
+        :timestamp-range="range"
         :items="tables"
       >
         <template #item>

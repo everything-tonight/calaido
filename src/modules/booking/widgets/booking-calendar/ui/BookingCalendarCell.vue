@@ -16,7 +16,7 @@ const isFirstRow = computed(() => row === 1)
   <time
     :datetime="timestamp.toString()"
     :class="cn(
-      'bg-system-generic text-center border border-system-outline',
+      'bg-system-generic text-center border border-system-outline w-24 h-16',
       {
         'bg-brand': isFirstColumn || isFirstRow,
         'sticky top-0': isFirstRow,
