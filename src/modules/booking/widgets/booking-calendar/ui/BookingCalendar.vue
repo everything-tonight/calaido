@@ -1,31 +1,52 @@
 <script setup lang="ts" generic="T">
 import { useCalendarGridRender } from ':modules/booking/widgets/booking-calendar/model'
 
+import { useTemplateRef } from 'vue'
+import { useCalendarActionsRender } from '../model/composables/calendarActionsRender.ts'
 import BookingCalendarCell from './BookingCalendarCell.vue'
 
 interface Props {
-  timestampStart: Date
-  timestampEnd: Date
-  timestampRange: number
+  options: {
+    timestampStart: Date
+    timestampEnd: Date
+    cellDuration: number
+    subCellDuration: number
+  }
   items: T[]
 }
 
-const props = defineProps<Props>()
+const { options, items } = defineProps<Props>()
+
+const calendarRef = useTemplateRef('calendar')
 
 const {
   cells,
   rowsCount,
   columnsCount,
+  subCellsCount,
 } = useCalendarGridRender(() => ({
-  timestampStart: props.timestampStart,
-  timestampEnd: props.timestampEnd,
-  rangeBetweenStartAndEnd: props.timestampRange,
-  itemsCount: props.items.length,
+  ...options,
+  itemsCount: items.length,
+}))
+
+const {
+  startAreaSelecting,
+  changeAreaSelecting,
+  stopAreaSelecting,
+} = useCalendarActionsRender(() => ({
+  container: calendarRef.value,
+  subCellsCount: subCellsCount.value,
 }))
 </script>
 
 <template>
-  <article>
+  <article
+    ref="calendar"
+    class="relative select-none"
+    @pointerdown="startAreaSelecting"
+    @pointermove="changeAreaSelecting"
+    @pointerup="stopAreaSelecting"
+  >
     <BookingCalendarCell
       v-for="cell in cells"
       :key="cell.id"

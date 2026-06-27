@@ -1,16 +1,17 @@
 import type { MaybeRefOrGetter } from 'vue'
-import type { CalendarCell } from './booking-calendar.types'
+import type { CalendarCell } from '../booking-calendar.types'
 import { computed, ref, toValue, watch } from 'vue'
-import { getTimeSlots } from './booking-calendar.utils'
+import { getTimeSlots } from '../booking-calendar.utils'
 
-interface UseCalendarGridRenderOpts {
+interface UseCalendarGridRenderOptions {
   timestampStart: Date
   timestampEnd: Date
-  rangeBetweenStartAndEnd: number
+  cellDuration: number
+  subCellDuration: number
   itemsCount: number
 }
 
-export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRenderOpts>) {
+export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRenderOptions>) {
   const DEFAULT_CELL_WIDTH = 72
   const DEFAULT_CELL_HEIGHT = 56
 
@@ -20,11 +21,15 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
   const state = ref(toValue(opts))
 
   const timeCells = computed(() => {
-    return getTimeSlots(state.value.timestampStart, state.value.timestampEnd, state.value.rangeBetweenStartAndEnd)
+    return getTimeSlots(state.value.timestampStart, state.value.timestampEnd, state.value.cellDuration)
   })
 
   const rowsCount = computed(() => timeCells.value.length)
   const columnsCount = computed(() => state.value.itemsCount)
+
+  const subCellsCount = computed(() => {
+    return Math.floor(state.value.cellDuration / state.value.subCellDuration)
+  })
 
   const cells = computed<CalendarCell[]>(() => {
     const columnsWithReserved = RESERVED_COLUMN + columnsCount.value
@@ -59,5 +64,6 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
     cells,
     rowsCount,
     columnsCount,
+    subCellsCount,
   }
 }

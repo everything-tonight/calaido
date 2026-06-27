@@ -4,3 +4,9 @@ export interface CalendarCell {
   column: number
   row: number
 }
+
+export interface CalendarCellCoords {
+  column: number
+  row: number
+  subCell: number
+}

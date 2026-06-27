@@ -18,11 +18,13 @@ const isFirstRow = computed(() => row === 1)
     :class="cn(
       'bg-system-generic text-center border border-system-outline w-24 h-16',
       {
-        'bg-brand': isFirstColumn || isFirstRow,
-        'sticky top-0': isFirstRow,
+        'sticky top-0 z-10': isFirstRow,
         'sticky left-0 z-10': isFirstColumn,
         'z-20': isFirstColumn && isFirstRow,
       })"
+    :data-column="column"
+    :data-row="row"
+    :data-timestamp="timestamp"
   >
     <slot v-if="isFirstRow && slots.item" name="item" />
     <span v-else>{{ format(timestamp, 'HH:mm', { locale: ru }) }}</span>

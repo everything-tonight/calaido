@@ -56,7 +56,8 @@ function bootstrapBookingPage(booking: Booking | undefined) {
   }
 }
 
-const range = ref(30)
+const cellDuration = ref(30)
+const subCellDuration = ref(5)
 
 watch(data, bootstrapBookingPage)
 </script>
@@ -77,12 +78,18 @@ watch(data, bootstrapBookingPage)
     />
 
     <main class="flex flex-col grow min-h-0 overflow-hidden py-4">
-      <input v-model="range" type="range" min="10" max="60" step="5" class="w-20">
+      <input v-model="cellDuration" type="range" min="10" max="60" step="5" class="w-20">
+      {{ cellDuration }}
+      <input v-model="subCellDuration" type="range" min="5" max="60" step="5" class="w-20">
+      {{ subCellDuration }}
 
       <BookingCalendar
-        :timestamp-start="restaurant.opening_time"
-        :timestamp-end="restaurant.closing_time"
-        :timestamp-range="range"
+        :options="{
+          timestampStart: restaurant.opening_time,
+          timestampEnd: restaurant.closing_time,
+          cellDuration,
+          subCellDuration,
+        }"
         :items="tables"
       >
         <template #item>

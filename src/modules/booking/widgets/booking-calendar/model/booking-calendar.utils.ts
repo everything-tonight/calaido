@@ -1,6 +1,6 @@
 import { addMinutes, differenceInMinutes } from 'date-fns'
 
-export function getTimeSlots(timestampStart: Date, timestampEnd: Date, timestampRange: number) {
+export function getTimeSlots(timestampStart: Date, timestampEnd: Date, timestampRange: number): Date[] {
   const cells = []
 
   let minutes = differenceInMinutes(timestampEnd, timestampStart)
@@ -21,4 +21,34 @@ export function getTimeSlots(timestampStart: Date, timestampEnd: Date, timestamp
   }
 
   return cells
+}
+
+export function getCellElement(column: number, row: number): HTMLElement | null {
+  return document.querySelector(`time[data-column="${column}"][data-row="${row}"]`)
+}
+
+export function getCellByPoint(clientX: number, clientY: number): { column: number, row: number } | undefined {
+  const RESERVED_COLUMN = 1
+  const RESERVED_ROW = 1
+
+  const element = document.elementFromPoint(clientX, clientY)
+
+  if (!element)
+    return
+
+  const cell = element.closest('time')
+
+  if (!cell)
+    return
+
+  const column = Number.parseInt(cell.getAttribute('data-column') as string)
+  const row = Number.parseInt(cell.getAttribute('data-row') as string)
+
+  if (!column || !row || column === RESERVED_COLUMN || row === RESERVED_ROW)
+    return
+
+  return {
+    column,
+    row,
+  }
 }
