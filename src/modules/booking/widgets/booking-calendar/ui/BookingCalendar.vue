@@ -1,8 +1,7 @@
 <script setup lang="ts" generic="T">
-import { useCalendarGridRender } from ':modules/booking/widgets/booking-calendar/model'
+import { useCalendarGridRender, useCalendarOverlayRender } from ':modules/booking/widgets/booking-calendar/model'
 
 import { useTemplateRef } from 'vue'
-import { useCalendarActionsRender } from '../model/composables/calendarActionsRender.ts'
 import BookingCalendarCell from './BookingCalendarCell.vue'
 
 interface Props {
@@ -24,6 +23,7 @@ const {
   rowsCount,
   columnsCount,
   subCellsCount,
+  subCellHeight,
 } = useCalendarGridRender(() => ({
   ...options,
   itemsCount: items.length,
@@ -33,10 +33,11 @@ const {
   startAreaSelecting,
   changeAreaSelecting,
   stopAreaSelecting,
-} = useCalendarActionsRender(() => ({
+} = useCalendarOverlayRender(() => ({
   container: calendarRef.value,
   overlayClasses: ['bg-brand/50 rounded'],
   subCellsCount: subCellsCount.value,
+  subCellsHeight: subCellHeight.value,
 }))
 </script>
 

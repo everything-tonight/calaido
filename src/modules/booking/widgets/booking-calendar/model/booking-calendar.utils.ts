@@ -31,26 +31,29 @@ export function getCellByPoint(clientX: number, clientY: number): { column: numb
   const RESERVED_COLUMN = 1
   const RESERVED_ROW = 1
 
-  const element = document.elementFromPoint(clientX, clientY)
+  // elementsFromPoint нужен, чтобы находить ячейку под перетаскиваемыми событиями
+  // и другими элементами с pointer-events, которые могут находиться выше ячейки
+  const elements = document.elementsFromPoint(clientX, clientY)
 
-  if (!element)
-    return
+  for (const element of elements) {
+    const cell = element.closest('time')
 
-  const cell = element.closest('time')
+    if (!cell)
+      continue
 
-  if (!cell)
-    return
+    const column = Number.parseInt(cell.getAttribute('data-column') as string)
+    const row = Number.parseInt(cell.getAttribute('data-row') as string)
 
-  const column = Number.parseInt(cell.getAttribute('data-column') as string)
-  const row = Number.parseInt(cell.getAttribute('data-row') as string)
+    if (!column || !row || column === RESERVED_COLUMN || row === RESERVED_ROW)
+      continue
 
-  if (!column || !row || column === RESERVED_COLUMN || row === RESERVED_ROW)
-    return
-
-  return {
-    column,
-    row,
+    return {
+      column,
+      row,
+    }
   }
+
+  return undefined
 }
 
 export function getSubCellPosition(cellElement: HTMLElement, clientY: number, subCellsCount: number): number {

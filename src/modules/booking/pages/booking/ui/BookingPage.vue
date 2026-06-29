@@ -90,7 +90,7 @@ watch(data, bootstrapBookingPage)
           cellDuration,
           subCellDuration,
         }"
-        :items="tables"
+        :items="tables.slice(0, 5)"
       >
         <template #item>
           <article>Элемент</article>
