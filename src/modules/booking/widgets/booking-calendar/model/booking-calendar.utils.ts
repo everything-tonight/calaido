@@ -52,3 +52,13 @@ export function getCellByPoint(clientX: number, clientY: number): { column: numb
     row,
   }
 }
+
+export function getSubCellPosition(cellElement: HTMLElement, clientY: number, subCellsCount: number): number {
+  const rect = cellElement.getBoundingClientRect()
+  const subCellHeight = rect.height / subCellsCount
+
+  return Math.min(
+    Math.max(Math.floor((clientY - rect.top) / subCellHeight), 0),
+    subCellsCount - 1,
+  )
+}

@@ -1,60 +1,51 @@
 import type { MaybeRefOrGetter } from 'vue'
 import type { CalendarCellCoords } from '../booking-calendar.types'
+import { cn } from ':modules/core/shared/utils'
 import { useToggle, watchDeep } from '@vueuse/core'
 import { ref, toValue } from 'vue'
-import { getCellByPoint, getCellElement } from '../booking-calendar.utils'
+import { getCellByPoint, getCellElement, getSubCellPosition } from '../booking-calendar.utils'
 
 interface UseCalendarActionsRenderOptions {
   container: HTMLElement | null
+  overlayClasses: string[]
   subCellsCount: number
 }
 
-function getSubCellPosition(cellElement: HTMLElement, clientY: number, subCellsCount: number): number {
-  const rect = cellElement.getBoundingClientRect()
-  const subCellHeight = rect.height / subCellsCount
-
-  return Math.min(
-    Math.max(Math.floor((clientY - rect.top) / subCellHeight), 0),
-    subCellsCount - 1,
-  )
+interface UseCalendarActionsRenderState extends UseCalendarActionsRenderOptions {
+  startCellCoords: CalendarCellCoords | null
+  endCellCoords: CalendarCellCoords | null
+  selectionOverlay: HTMLDivElement | null
 }
 
 export function useCalendarActionsRender(opts: MaybeRefOrGetter<UseCalendarActionsRenderOptions>) {
-  const state = ref(toValue(opts))
+  const state = ref<UseCalendarActionsRenderState>({
+    ...toValue(opts),
+    startCellCoords: null,
+    endCellCoords: null,
+    selectionOverlay: null,
+  })
 
   const [isAreaSelecting, toggleIsAreaSelecting] = useToggle()
 
-  let startCellCoords: CalendarCellCoords | null = null
-  let endCellCoords: CalendarCellCoords | null = null
-  let selectionOverlay: HTMLDivElement | null = null
-
   function createSelectionOverlay() {
-    if (selectionOverlay || !state.value.container)
+    if (state.value.selectionOverlay || !state.value.container)
       return
 
-    selectionOverlay = document.createElement('div')
+    state.value.selectionOverlay = document.createElement('div')
 
-    Object.assign(selectionOverlay.style, {
-      position: 'absolute',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-      border: '2px solid rgba(59, 130, 246, 0.4)',
-      borderRadius: '8px',
-      pointerEvents: 'none',
-    })
+    state.value.selectionOverlay.className = cn('absolute pointer-events-none', state.value.overlayClasses)
 
-    state.value.container.appendChild(selectionOverlay)
+    state.value.container.appendChild(state.value.selectionOverlay)
   }
 
   function updateSelectionOverlay() {
-    if (!selectionOverlay || !startCellCoords || !endCellCoords || !state.value.container)
+    if (!state.value.selectionOverlay || !state.value.startCellCoords || !state.value.endCellCoords || !state.value.container)
       return
 
-    const { subCellsCount } = state.value
-
-    const minCol = Math.min(startCellCoords.column, endCellCoords.column)
-    const maxCol = Math.max(startCellCoords.column, endCellCoords.column)
-    const minRow = Math.min(startCellCoords.row, endCellCoords.row)
-    const maxRow = Math.max(startCellCoords.row, endCellCoords.row)
+    const minCol = Math.min(state.value.startCellCoords.column, state.value.endCellCoords.column)
+    const maxCol = Math.max(state.value.startCellCoords.column, state.value.endCellCoords.column)
+    const minRow = Math.min(state.value.startCellCoords.row, state.value.endCellCoords.row)
+    const maxRow = Math.max(state.value.startCellCoords.row, state.value.endCellCoords.row)
 
     const minCellElement = getCellElement(minCol, minRow)
     const maxCellElement = getCellElement(maxCol, maxRow)
@@ -66,39 +57,39 @@ export function useCalendarActionsRender(opts: MaybeRefOrGetter<UseCalendarActio
     const minCellRect = minCellElement.getBoundingClientRect()
     const maxCellRect = maxCellElement.getBoundingClientRect()
 
-    const subCellHeight = minCellRect.height / subCellsCount
+    const subCellHeight = minCellRect.height / state.value.subCellsCount
 
-    const isStartAtTop = startCellCoords.row === minRow
-    const isEndAtTop = endCellCoords.row === minRow
-    const isStartAtBottom = startCellCoords.row === maxRow
-    const isEndAtBottom = endCellCoords.row === maxRow
+    const isStartAtTop = state.value.startCellCoords.row === minRow
+    const isEndAtTop = state.value.endCellCoords.row === minRow
+    const isStartAtBottom = state.value.startCellCoords.row === maxRow
+    const isEndAtBottom = state.value.endCellCoords.row === maxRow
 
     const topSubCell = isStartAtTop && isEndAtTop
-      ? Math.min(startCellCoords.subCell, endCellCoords.subCell)
+      ? Math.min(state.value.startCellCoords.subCell, state.value.endCellCoords.subCell)
       : isStartAtTop
-        ? startCellCoords.subCell
+        ? state.value.startCellCoords.subCell
         : isEndAtTop
-          ? endCellCoords.subCell
+          ? state.value.endCellCoords.subCell
           : 0
 
     const bottomSubCell = isStartAtBottom && isEndAtBottom
-      ? Math.max(startCellCoords.subCell, endCellCoords.subCell)
+      ? Math.max(state.value.startCellCoords.subCell, state.value.endCellCoords.subCell)
       : isStartAtBottom
-        ? startCellCoords.subCell
+        ? state.value.startCellCoords.subCell
         : isEndAtBottom
-          ? endCellCoords.subCell
-          : subCellsCount - 1
+          ? state.value.endCellCoords.subCell
+          : state.value.subCellsCount - 1
 
     const isExplicitBottomBoundary = isStartAtBottom || isEndAtBottom
 
     const top = minCellRect.top + topSubCell * subCellHeight
     const bottom = maxCellRect.top + (bottomSubCell + 1) * subCellHeight
-      - (isExplicitBottomBoundary && bottomSubCell === subCellsCount - 1 ? 1 : 0)
+      - (isExplicitBottomBoundary && bottomSubCell === state.value.subCellsCount - 1 ? 1 : 0)
 
     const scrollLeft = state.value.container.scrollLeft
     const scrollTop = state.value.container.scrollTop
 
-    Object.assign(selectionOverlay.style, {
+    Object.assign(state.value.selectionOverlay.style, {
       left: `${minCellRect.left - containerRect.left + scrollLeft}px`,
       top: `${top - containerRect.top + scrollTop}px`,
       width: `${maxCellRect.right - minCellRect.left}px`,
@@ -107,9 +98,9 @@ export function useCalendarActionsRender(opts: MaybeRefOrGetter<UseCalendarActio
   }
 
   function removeOverlay() {
-    if (selectionOverlay) {
-      selectionOverlay.remove()
-      selectionOverlay = null
+    if (state.value.selectionOverlay) {
+      state.value.selectionOverlay.remove()
+      state.value.selectionOverlay = null
     }
   }
 
@@ -131,8 +122,8 @@ export function useCalendarActionsRender(opts: MaybeRefOrGetter<UseCalendarActio
     toggleIsAreaSelecting(true)
     removeOverlay()
 
-    startCellCoords = { column, row, subCell }
-    endCellCoords = { column, row, subCell }
+    state.value.startCellCoords = { column, row, subCell }
+    state.value.endCellCoords = { column, row, subCell }
   }
 
   const changeAreaSelecting = (e: PointerEvent) => {
@@ -151,7 +142,7 @@ export function useCalendarActionsRender(opts: MaybeRefOrGetter<UseCalendarActio
 
     const subCell = getSubCellPosition(cellElement, e.clientY, state.value.subCellsCount)
 
-    endCellCoords = { column: point.column, row: point.row, subCell }
+    state.value.endCellCoords = { column: point.column, row: point.row, subCell }
 
     createSelectionOverlay()
     updateSelectionOverlay()
@@ -163,11 +154,11 @@ export function useCalendarActionsRender(opts: MaybeRefOrGetter<UseCalendarActio
 
     toggleIsAreaSelecting(false)
 
-    startCellCoords = null
-    endCellCoords = null
+    state.value.startCellCoords = null
+    state.value.endCellCoords = null
   }
 
-  watchDeep(() => toValue(opts), newOpts => state.value = newOpts)
+  watchDeep(() => toValue(opts), newOpts => state.value = { ...state.value, ...newOpts })
 
   return {
     startAreaSelecting,

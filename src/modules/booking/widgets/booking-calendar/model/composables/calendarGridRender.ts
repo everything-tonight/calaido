@@ -1,6 +1,7 @@
 import type { MaybeRefOrGetter } from 'vue'
 import type { CalendarCell } from '../booking-calendar.types'
-import { computed, ref, toValue, watch } from 'vue'
+import { watchDeep } from '@vueuse/core'
+import { computed, ref, toValue } from 'vue'
 import { getTimeSlots } from '../booking-calendar.utils'
 
 interface UseCalendarGridRenderOptions {
@@ -26,10 +27,8 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
 
   const rowsCount = computed(() => timeCells.value.length)
   const columnsCount = computed(() => state.value.itemsCount)
-
-  const subCellsCount = computed(() => {
-    return Math.floor(state.value.cellDuration / state.value.subCellDuration)
-  })
+  const subCellsCount = computed(() => state.value.cellDuration / state.value.subCellDuration)
+  const subCellHeight = computed(() => DEFAULT_CELL_HEIGHT / subCellsCount.value)
 
   const cells = computed<CalendarCell[]>(() => {
     const columnsWithReserved = RESERVED_COLUMN + columnsCount.value
@@ -48,15 +47,17 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
         timestamp: row > 0 ? timeCells.value[row - 1] : state.value.timestampStart,
         column: column + 1,
         row: row + 1,
+        subCellCount: subCellsCount.value,
+        subCellHeight: subCellHeight.value,
       }
     }
 
     return result
   })
 
-  watch(() => toValue(opts), (newOpts) => {
+  watchDeep(() => toValue(opts), (newOpts) => {
     state.value = newOpts
-  }, { deep: true })
+  })
 
   return {
     DEFAULT_CELL_HEIGHT,
@@ -65,5 +66,6 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
     rowsCount,
     columnsCount,
     subCellsCount,
+    subCellHeight,
   }
 }

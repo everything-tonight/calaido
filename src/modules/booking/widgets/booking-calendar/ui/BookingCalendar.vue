@@ -35,6 +35,7 @@ const {
   stopAreaSelecting,
 } = useCalendarActionsRender(() => ({
   container: calendarRef.value,
+  overlayClasses: ['bg-brand/50 rounded'],
   subCellsCount: subCellsCount.value,
 }))
 </script>

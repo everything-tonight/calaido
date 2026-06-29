@@ -3,6 +3,8 @@ export interface CalendarCell {
   timestamp: Date
   column: number
   row: number
+  subCellCount: number
+  subCellHeight: number
 }
 
 export interface CalendarCellCoords {
