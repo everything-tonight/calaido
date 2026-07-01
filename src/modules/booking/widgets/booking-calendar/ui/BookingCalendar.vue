@@ -1,8 +1,8 @@
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="T, K">
 import { useCalendarGridRender, useCalendarOverlayRender } from ':modules/booking/widgets/booking-calendar/model'
-
+import { format } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import { useTemplateRef } from 'vue'
-import BookingCalendarCell from './BookingCalendarCell.vue'
 
 interface Props {
   options: {
@@ -12,20 +12,34 @@ interface Props {
     subCellDuration: number
   }
   items: T[]
+  events: K[]
 }
 
 const { options, items } = defineProps<Props>()
 
-const calendarRef = useTemplateRef('calendar')
+const containerRef = useTemplateRef('container')
+const cellItemRef = useTemplateRef('cellWorkspace')
 
 const {
-  cells,
-  rowsCount,
-  columnsCount,
-  subCellsCount,
-  subCellHeight,
+  DEFAULT_CELL_WIDTH,
+  DEFAULT_CELL_HEIGHT,
+  timeSlots,
+  cellsInFirstRow,
+  cellsInFirstColumn,
+  cellsInWorkspace,
+  cellWorkspaceHeight,
+  cellWorkspaceWidth,
+  cellWorkspaceSubCellsCount,
+  cellWorkspaceSubCellHeight,
+  getFirstRowCellStyle,
+  getFirstColumnCellStyle,
+  getWorkspaceCellStyle,
+  getWorkspaceCellCoords,
+  getLastColumnCellStyle,
 } = useCalendarGridRender(() => ({
   ...options,
+  container: containerRef.value,
+  cellWorkspace: cellItemRef.value?.at(0) ?? null,
   itemsCount: items.length,
 }))
 
@@ -34,45 +48,120 @@ const {
   changeAreaSelecting,
   stopAreaSelecting,
 } = useCalendarOverlayRender(() => ({
-  container: calendarRef.value,
-  overlayClasses: ['bg-brand/50 rounded'],
-  subCellsCount: subCellsCount.value,
-  subCellsHeight: subCellHeight.value,
+  container: containerRef.value,
+  subCellsCount: cellWorkspaceSubCellsCount.value,
+  subCellsHeight: cellWorkspaceSubCellHeight.value,
+  overlayClasses: ['bg-red-200/25'],
 }))
 </script>
 
 <template>
   <article
-    ref="calendar"
+    ref="container"
     class="relative select-none"
     @pointerdown="startAreaSelecting"
     @pointermove="changeAreaSelecting"
     @pointerup="stopAreaSelecting"
   >
-    <BookingCalendarCell
-      v-for="cell in cells"
-      :key="cell.id"
-      v-bind="cell"
+    <time
+      v-for="(item, idx) in items"
+      :key="`cell-first-row-${idx}`"
+      ref="cellWorkspace"
+      :style="getFirstRowCellStyle(idx)"
+      class="cell cell-first-row"
     >
-      <template #item>
-        <slot name="item" />
-      </template>
-    </BookingCalendarCell>
+      <slot name="item" :item="item" />
+    </time>
+
+    <time
+      v-for="(_, idx) in cellsInFirstColumn"
+      :key="`cell-first-column-${idx}`"
+      :style="getFirstColumnCellStyle(idx)"
+      class="cell cell-first-column"
+    >
+      {{ format(timeSlots[idx], 'HH:mm', { locale: ru }) }}
+    </time>
+
+    <time
+      v-for="(_, idx) in cellsInWorkspace"
+      :key="`cell-workspace-${idx}`"
+      :style="getWorkspaceCellStyle(idx)"
+      :data-column="getWorkspaceCellCoords(idx).column"
+      :data-row="getWorkspaceCellCoords(idx).row"
+      class="cell cell-workspace"
+    >
+      col {{ idx }}
+    </time>
+
+    <time
+      v-for="(_, idx) in cellsInFirstColumn"
+      :key="`cell-last-column-${idx}`"
+      :style="getLastColumnCellStyle(idx)"
+      class="cell cell-last-column"
+    >
+      {{ format(timeSlots[idx], 'HH:mm', { locale: ru }) }}
+    </time>
   </article>
 </template>
 
 <style scoped>
 article {
-  --rowsCount: v-bind(rowsCount);
-  --columnsCount: v-bind(columnsCount);
-
   flex-grow: 1;
   background: var(--color-system-generic);
   border-radius: var(--radius-xl);
   display: grid;
-  grid-template-rows: min-content repeat(var(--rowsCount), minmax(min-content, 1fr));
-  grid-template-columns: min-content repeat(var(--columnsCount), minmax(min-content, 1fr));
+  grid-template-rows: minmax(max-content, 1fr) repeat(v-bind(cellsInFirstColumn), minmax(max-content, 1fr));
+  grid-template-columns: max-content repeat(v-bind(cellsInFirstRow), minmax(max-content, 1fr));
   grid-auto-flow: column;
-  overflow: scroll;
+  overflow: auto;
+}
+
+.cell {
+  --row: 0,
+  --column: 0;
+
+  grid-row: var(--row);
+  grid-column: var(--column);
+  min-width: calc(v-bind(DEFAULT_CELL_WIDTH) * 1px);
+  min-height: calc(v-bind(DEFAULT_CELL_HEIGHT) * 1px);
+}
+
+.cell-first-column {
+  width: calc(v-bind(DEFAULT_CELL_WIDTH) * 1px);
+  height: calc(v-bind(cellWorkspaceHeight) * 1px);
+}
+
+.cell-workspace {
+  width: calc(v-bind(cellWorkspaceWidth) * 1px);
+  height: calc(v-bind(cellWorkspaceHeight) * 1px);
+  border: 1px gray solid;
+}
+
+.cell-first-row,
+.cell-first-column,
+.cell-last-column {
+  position: sticky;
+  background: white;
+  z-index: 10;
+}
+
+.cell-first-row.cell-first-column {
+  z-index: 20;
+}
+
+.cell-first-row {
+  top: 0;
+}
+
+.cell-first-column {
+  left: 0;
+  text-align: end;
+  padding-inline: 1rem;
+}
+
+.cell-last-column {
+  right: 0;
+  text-align: start;
+  padding-inline: 1rem;
 }
 </style>

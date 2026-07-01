@@ -1,10 +1,11 @@
 import type { MaybeRefOrGetter } from 'vue'
-import type { CalendarCell } from '../booking-calendar.types'
 import { watchDeep } from '@vueuse/core'
 import { computed, ref, toValue } from 'vue'
 import { getTimeSlots } from '../booking-calendar.utils'
 
 interface UseCalendarGridRenderOptions {
+  container: HTMLElement | null
+  cellWorkspace: HTMLTimeElement | null
   timestampStart: Date
   timestampEnd: Date
   cellDuration: number
@@ -16,44 +17,67 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
   const DEFAULT_CELL_WIDTH = 72
   const DEFAULT_CELL_HEIGHT = 56
 
-  const RESERVED_COLUMN = 1
-  const RESERVED_TIME_CELL = 1
-
   const state = ref(toValue(opts))
 
-  const timeCells = computed(() => {
+  const columnsCount = computed(() => state.value.itemsCount)
+
+  const timeSlots = computed(() => {
     return getTimeSlots(state.value.timestampStart, state.value.timestampEnd, state.value.cellDuration)
   })
 
-  const rowsCount = computed(() => timeCells.value.length)
-  const columnsCount = computed(() => state.value.itemsCount)
-  const subCellsCount = computed(() => state.value.cellDuration / state.value.subCellDuration)
-  const subCellHeight = computed(() => DEFAULT_CELL_HEIGHT / subCellsCount.value)
+  const cellsInFirstColumn = computed(() => timeSlots.value.length)
+  const cellsInFirstRow = computed(() => state.value.itemsCount)
 
-  const cells = computed<CalendarCell[]>(() => {
-    const columnsWithReserved = RESERVED_COLUMN + columnsCount.value
-    const timeCellsWithReserved = RESERVED_TIME_CELL + rowsCount.value
+  const cellsInWorkspace = computed(() => cellsInFirstColumn.value * columnsCount.value)
 
-    const totalCellsCount = columnsWithReserved * timeCellsWithReserved
-
-    const result: CalendarCell[] = []
-
-    for (let index = 0; index < totalCellsCount; index++) {
-      const column = Math.floor(index / timeCellsWithReserved)
-      const row = index % timeCellsWithReserved
-
-      result[index] = {
-        id: index,
-        timestamp: row > 0 ? timeCells.value[row - 1] : state.value.timestampStart,
-        column: column + 1,
-        row: row + 1,
-        subCellCount: subCellsCount.value,
-        subCellHeight: subCellHeight.value,
-      }
+  const cellWorkspaceWidth = computed(() => {
+    if (state.value.cellWorkspace) {
+      return state.value.cellWorkspace.offsetWidth
     }
 
-    return result
+    return 0
   })
+
+  const cellWorkspaceHeight = computed(() => {
+    if (state.value.cellWorkspace) {
+      return state.value.cellWorkspace.offsetHeight
+    }
+
+    return 0
+  })
+
+  const cellWorkspaceSubCellsCount = computed(() => {
+    return Math.max(1, Math.floor(state.value.cellDuration / state.value.subCellDuration))
+  })
+
+  const cellWorkspaceSubCellHeight = computed(() => {
+    return cellWorkspaceHeight.value / cellWorkspaceSubCellsCount.value
+  })
+
+  function getFirstRowCellStyle(index: number): string {
+    return `--column: ${2 + index}; --row: 1;`
+  }
+
+  function getFirstColumnCellStyle(index: number): string {
+    return `--column: 1; --row: ${2 + index};`
+  }
+
+  function getLastColumnCellStyle(index: number): string {
+    return `--column: ${cellsInWorkspace.value + 1}; --row: ${2 + index};`
+  }
+
+  function getWorkspaceCellCoords(index: number) {
+    return {
+      column: 2 + Math.floor(index / cellsInFirstColumn.value),
+      row: 2 + (index % cellsInFirstColumn.value),
+    }
+  }
+
+  function getWorkspaceCellStyle(index: number): string {
+    const { column, row } = getWorkspaceCellCoords(index)
+
+    return `--column: ${column}; --row: ${row};`
+  }
 
   watchDeep(() => toValue(opts), (newOpts) => {
     state.value = newOpts
@@ -62,10 +86,18 @@ export function useCalendarGridRender(opts: MaybeRefOrGetter<UseCalendarGridRend
   return {
     DEFAULT_CELL_HEIGHT,
     DEFAULT_CELL_WIDTH,
-    cells,
-    rowsCount,
-    columnsCount,
-    subCellsCount,
-    subCellHeight,
+    timeSlots,
+    cellsInFirstRow,
+    cellsInFirstColumn,
+    cellsInWorkspace,
+    cellWorkspaceHeight,
+    cellWorkspaceWidth,
+    cellWorkspaceSubCellsCount,
+    cellWorkspaceSubCellHeight,
+    getFirstRowCellStyle,
+    getFirstColumnCellStyle,
+    getWorkspaceCellStyle,
+    getWorkspaceCellCoords,
+    getLastColumnCellStyle,
   }
 }

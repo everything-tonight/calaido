@@ -79,9 +79,7 @@ watch(data, bootstrapBookingPage)
 
     <main class="flex flex-col grow min-h-0 overflow-hidden py-4">
       <input v-model="cellDuration" type="range" min="10" max="60" step="5" class="w-20">
-      {{ cellDuration }}
       <input v-model="subCellDuration" type="range" min="5" max="60" step="5" class="w-20">
-      {{ subCellDuration }}
 
       <BookingCalendar
         :options="{
@@ -90,12 +88,9 @@ watch(data, bootstrapBookingPage)
           cellDuration,
           subCellDuration,
         }"
-        :items="tables.slice(0, 5)"
-      >
-        <template #item>
-          <article>Элемент</article>
-        </template>
-      </BookingCalendar>
+        :items="tables"
+        :events="[]"
+      />
     </main>
   </div>
 </template>

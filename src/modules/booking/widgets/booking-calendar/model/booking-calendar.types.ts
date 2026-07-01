@@ -1,10 +1,17 @@
-export interface CalendarCell {
-  id: number
+export interface CalendarDefaultCell {
+  type: 'default'
+}
+
+export interface CalendarWorkspaceCell {
+  type: 'workspace'
   timestamp: Date
+}
+
+export type CalendarCell = (CalendarDefaultCell | CalendarWorkspaceCell) & {
   column: number
   row: number
-  subCellCount: number
-  subCellHeight: number
+  width: number
+  height: number
 }
 
 export interface CalendarCellCoords {
