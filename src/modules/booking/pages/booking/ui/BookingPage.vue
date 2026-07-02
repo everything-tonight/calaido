@@ -4,7 +4,7 @@ import type { Booking } from '../model'
 
 import { useRestaurantStore } from ':modules/booking/entities/restaurant/model/restaurant.store'
 import BookingCalendar from ':modules/booking/widgets/booking-calendar/ui/BookingCalendar.vue'
-import { BookingFilters, useBookingFilters } from ':modules/booking/widgets/booking-filters'
+import { useBookingFilters } from ':modules/booking/widgets/booking-filters'
 import { useQuery } from '@pinia/colada'
 import { useSeoMeta } from '@unhead/vue'
 import { storeToRefs } from 'pinia'
@@ -21,10 +21,7 @@ const { restaurant, tables } = storeToRefs(restaurantStore)
 const { setRestaurant, setTables } = restaurantStore
 
 const {
-  filters,
-  availableDates,
   setAvailableDates,
-  availableZones,
   setAvailableZones,
 } = useBookingFilters()
 
@@ -59,7 +56,9 @@ function bootstrapBookingPage(booking: Booking | undefined) {
 const cellDuration = ref(30)
 const subCellDuration = ref(5)
 
-watch(data, bootstrapBookingPage)
+watch(data, (booking) => {
+  bootstrapBookingPage(booking)
+})
 </script>
 
 <template>
@@ -70,16 +69,18 @@ watch(data, bootstrapBookingPage)
       </h1>
     </header>
 
-    <BookingFilters
-      v-model="filters"
-      :available-dates="availableDates"
-      :available-zones="availableZones"
-      class="mt-4"
-    />
-
     <main class="flex flex-col grow min-h-0 overflow-hidden py-4">
-      <input v-model="cellDuration" type="range" min="10" max="60" step="5" class="w-20">
-      <input v-model="subCellDuration" type="range" min="5" max="60" step="5" class="w-20">
+      <div class="flex items-center gap-4 my-8">
+        <label>
+          <input v-model="cellDuration" type="range" min="10" max="60" step="5" class="w-20">
+          <span>{{ cellDuration }}</span>
+        </label>
+
+        <label>
+          <input v-model="subCellDuration" type="range" min="5" max="60" step="5" class="w-20">
+          <span>{{ subCellDuration }}</span>
+        </label>
+      </div>
 
       <BookingCalendar
         :options="{
@@ -87,10 +88,19 @@ watch(data, bootstrapBookingPage)
           timestampEnd: restaurant.closing_time,
           cellDuration,
           subCellDuration,
+          direction: 'row',
+          leftTimestampColumn: false,
+          rightTimestampColumn: false,
         }"
-        :items="tables"
+        :items="tables.slice(0, 20)"
         :events="[]"
-      />
+      >
+        <template #item>
+          <article class="w-40 h-40">
+            Столик
+          </article>
+        </template>
+      </BookingCalendar>
     </main>
   </div>
 </template>

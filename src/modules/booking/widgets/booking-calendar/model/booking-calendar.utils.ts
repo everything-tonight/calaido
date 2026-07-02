@@ -1,30 +1,68 @@
+import type { CalendarDirection } from './booking-calendar.types'
 import { addMinutes, differenceInMinutes } from 'date-fns'
+import { CALENDAR_DIRECTION } from './booking-calendar.types'
+
+export const FIRST_ROW_INDEX = 1
+export const FIRST_COLUMN_INDEX = 1
+export const WORKSPACE_START_ROW = 2
+
+export const isRowDirection = (direction: CalendarDirection) => direction === CALENDAR_DIRECTION.ROW
+
+export function getFirstColumnCellCoords(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number }) {
+  return {
+    column: isRowDirection(opts.direction) ? opts.workspaceStartColumn + index : FIRST_COLUMN_INDEX,
+    row: isRowDirection(opts.direction) ? FIRST_ROW_INDEX : WORKSPACE_START_ROW + index,
+  }
+}
+
+export function getFirstRowCellCoords(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number }) {
+  return {
+    column: isRowDirection(opts.direction) ? FIRST_COLUMN_INDEX : opts.workspaceStartColumn + index,
+    row: isRowDirection(opts.direction) ? WORKSPACE_START_ROW + index : FIRST_ROW_INDEX,
+  }
+}
+
+export function getLastColumnCellCoords(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number, rowCells: number, columnCells: number }) {
+  const column = isRowDirection(opts.direction)
+    ? opts.workspaceStartColumn + opts.columnCells
+    : opts.workspaceStartColumn + opts.rowCells
+
+  return {
+    column,
+    row: WORKSPACE_START_ROW + index,
+  }
+}
+
+export function getWorkspaceCellPosition(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number, columnCells: number }) {
+  const rowInGroup = index % opts.columnCells
+  const groupIndex = Math.floor(index / opts.columnCells)
+
+  return isRowDirection(opts.direction)
+    ? { column: opts.workspaceStartColumn + rowInGroup, row: WORKSPACE_START_ROW + groupIndex }
+    : { column: opts.workspaceStartColumn + groupIndex, row: WORKSPACE_START_ROW + rowInGroup }
+}
 
 export function getTimeSlots(timestampStart: Date, timestampEnd: Date, timestampRange: number): Date[] {
-  const cells = []
+  const slots = []
 
   let minutes = differenceInMinutes(timestampEnd, timestampStart)
 
-  cells.push(timestampStart)
+  slots.push(timestampStart)
 
   while (minutes / timestampRange >= 1) {
     const currentTimestamp = addMinutes(timestampStart, timestampRange)
 
-    cells.push(currentTimestamp)
+    slots.push(currentTimestamp)
 
     timestampStart = currentTimestamp
     minutes -= timestampRange
   }
 
   if (minutes) {
-    cells.push(addMinutes(timestampStart, minutes))
+    slots.push(addMinutes(timestampStart, minutes))
   }
 
-  return cells
-}
-
-export function getCellElement(column: number, row: number): HTMLElement | null {
-  return document.querySelector(`time[data-column="${column}"][data-row="${row}"]`)
+  return slots
 }
 
 export function getCellByPoint(clientX: number, clientY: number): { column: number, row: number } | undefined {
@@ -56,12 +94,125 @@ export function getCellByPoint(clientX: number, clientY: number): { column: numb
   return undefined
 }
 
-export function getSubCellPosition(cellElement: HTMLElement, clientY: number, subCellsCount: number): number {
-  const rect = cellElement.getBoundingClientRect()
-  const subCellHeight = rect.height / subCellsCount
+// export function getSubCellPosition(cellElement: HTMLElement, clientY: number, subCellsCount: number): number {
+//   const rect = cellElement.getBoundingClientRect()
+//   const subCellHeight = rect.height / subCellsCount
 
-  return Math.min(
-    Math.max(Math.floor((clientY - rect.top) / subCellHeight), 0),
-    subCellsCount - 1,
-  )
-}
+//   return Math.min(
+//     Math.max(Math.floor((clientY - rect.top) / subCellHeight), 0),
+//     subCellsCount - 1,
+//   )
+// }
+
+// export function getTimestampByCoords(
+//   timestampStart: Date,
+//   cellDuration: number,
+//   subCellDuration: number,
+//   row: number,
+//   subCell: number,
+// ): Date {
+//   return addMinutes(
+//     timestampStart,
+//     (row - 2) * cellDuration + subCell * subCellDuration,
+//   )
+// }
+
+// export function createFigure(options: { container: HTMLElement | null, start: CalendarCell, end: CalendarCell }) {
+//   const {
+//     container,
+//     start,
+//     end,
+//   } = options
+
+//   if (!container || !start || !end)
+//     return
+
+//   const minCol = Math.min(start.column, end.column)
+//   const maxCol = Math.max(start.column, end.column)
+//   const minRow = Math.min(start.row, end.row)
+//   const maxRow = Math.max(start.row, end.row)
+
+//   const minCellElement = Math.min(minCol, minRow)
+//   const maxCellElement = Math.max(maxCol, maxRow)
+
+//   if (!minCellElement || !maxCellElement)
+//     return
+
+//   const containerRect = container.getBoundingClientRect()
+//   const minCellRect = minCellElement.getBoundingClientRect()
+//   const maxCellRect = maxCellElement.getBoundingClientRect()
+
+//   const isStartAtTop = start.row === minRow
+//   const isEndAtTop = end.row === minRow
+//   const isStartAtBottom = start.row === maxRow
+//   const isEndAtBottom = end.row === maxRow
+
+//   const topSubCell = isStartAtTop && isEndAtTop
+//     ? Math.min(start.subCell, end.subCell)
+//     : isStartAtTop
+//       ? start.subCell
+//       : isEndAtTop
+//         ? end.subCell
+//         : 0
+
+//   const bottomSubCell = isStartAtBottom && isEndAtBottom
+//     ? Math.max(start.subCell, end.subCell)
+//     : isStartAtBottom
+//       ? start.subCell
+//       : isEndAtBottom
+//         ? end.subCell
+//         : subCellCount - 1
+
+//   const isExplicitBottomBoundary = isStartAtBottom || isEndAtBottom
+
+//   const top = minCellRect.top + topSubCell * subCellHeight
+//   const bottom = maxCellRect.top + (bottomSubCell + 1) * subCellHeight
+//     - (isExplicitBottomBoundary && bottomSubCell === subCellCount - 1 ? 1 : 0)
+
+//   const scrollLeft = container.scrollLeft
+//   const scrollTop = container.scrollTop
+
+//   const left = minCellRect.left - containerRect.left + scrollLeft
+//   const overlayTop = top - containerRect.top + scrollTop
+//   const width = maxCellRect.right - minCellRect.left
+//   const height = bottom - top
+
+//   return {
+//     left: `${left}px`,
+//     top: `${overlayTop}px`,
+//     width: `${width}px`,
+//     height: `${height}px`,
+//   }
+// }
+
+// function getColumnByItemId(itemId: string | number): number | undefined {
+//   const index = items.findIndex(item => (item as any).id === itemId)
+
+//   if (index === -1)
+//     return undefined
+
+//   return index + 2
+// }
+
+// function getCoordsByTimestamp(timestamp: Date, isEnd = false): CalendarCellCoords | null {
+//   if (timestamp < options.timestampStart || timestamp > options.timestampEnd)
+//     return null
+
+//   const subCellsCount = cellWorkspaceSubCellsCount.value
+//   let totalMinutes = differenceInMinutes(timestamp, options.timestampStart)
+
+//   if (isEnd && totalMinutes > 0 && totalMinutes % options.subCellDuration === 0)
+//     totalMinutes -= options.subCellDuration
+
+//   const slotIndex = Math.floor(totalMinutes / options.cellDuration)
+//   const subCell = Math.min(
+//     subCellsCount - 1,
+//     Math.floor((totalMinutes % options.cellDuration) / options.subCellDuration),
+//   )
+
+//   return {
+//     column: 0,
+//     row: 2 + slotIndex,
+//     subCell,
+//   }
+// }
