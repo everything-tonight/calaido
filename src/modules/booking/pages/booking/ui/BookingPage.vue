@@ -88,15 +88,15 @@ watch(data, (booking) => {
           timestampEnd: restaurant.closing_time,
           cellDuration,
           subCellDuration,
-          direction: 'row',
-          leftTimestampColumn: false,
-          rightTimestampColumn: false,
+          direction: 'column',
+          leftTimestampColumn: true,
+          rightTimestampColumn: true,
         }"
         :items="tables.slice(0, 20)"
         :events="[]"
       >
         <template #item>
-          <article class="w-40 h-40">
+          <article class="w-40 h-40 bg-red-200">
             Столик
           </article>
         </template>

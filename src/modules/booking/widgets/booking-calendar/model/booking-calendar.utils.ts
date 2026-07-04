@@ -2,45 +2,12 @@ import type { CalendarDirection } from './booking-calendar.types'
 import { addMinutes, differenceInMinutes } from 'date-fns'
 import { CALENDAR_DIRECTION } from './booking-calendar.types'
 
-export const FIRST_ROW_INDEX = 1
-export const FIRST_COLUMN_INDEX = 1
-export const WORKSPACE_START_ROW = 2
+export const HEADER_ROW_INDEX = 1
+export const HEADER_COLUMN_INDEX = 1
+export const WORKSPACE_START_ROW_INDEX = 2
+export const WORKSPACE_START_COLUMN_INDEX = 2
 
 export const isRowDirection = (direction: CalendarDirection) => direction === CALENDAR_DIRECTION.ROW
-
-export function getFirstColumnCellCoords(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number }) {
-  return {
-    column: isRowDirection(opts.direction) ? opts.workspaceStartColumn + index : FIRST_COLUMN_INDEX,
-    row: isRowDirection(opts.direction) ? FIRST_ROW_INDEX : WORKSPACE_START_ROW + index,
-  }
-}
-
-export function getFirstRowCellCoords(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number }) {
-  return {
-    column: isRowDirection(opts.direction) ? FIRST_COLUMN_INDEX : opts.workspaceStartColumn + index,
-    row: isRowDirection(opts.direction) ? WORKSPACE_START_ROW + index : FIRST_ROW_INDEX,
-  }
-}
-
-export function getLastColumnCellCoords(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number, rowCells: number, columnCells: number }) {
-  const column = isRowDirection(opts.direction)
-    ? opts.workspaceStartColumn + opts.columnCells
-    : opts.workspaceStartColumn + opts.rowCells
-
-  return {
-    column,
-    row: WORKSPACE_START_ROW + index,
-  }
-}
-
-export function getWorkspaceCellPosition(index: number, opts: { direction: CalendarDirection, workspaceStartColumn: number, columnCells: number }) {
-  const rowInGroup = index % opts.columnCells
-  const groupIndex = Math.floor(index / opts.columnCells)
-
-  return isRowDirection(opts.direction)
-    ? { column: opts.workspaceStartColumn + rowInGroup, row: WORKSPACE_START_ROW + groupIndex }
-    : { column: opts.workspaceStartColumn + groupIndex, row: WORKSPACE_START_ROW + rowInGroup }
-}
 
 export function getTimeSlots(timestampStart: Date, timestampEnd: Date, timestampRange: number): Date[] {
   const slots = []

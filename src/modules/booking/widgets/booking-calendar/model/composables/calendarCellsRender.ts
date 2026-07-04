@@ -3,7 +3,7 @@ import type { CalendarCell } from '../booking-calendar.types'
 import { watchDeep } from '@vueuse/core'
 import { computed, ref, toValue } from 'vue'
 import { CALENDAR_CELL_TYPE } from '../booking-calendar.types'
-import { getFirstColumnCellCoords, getFirstRowCellCoords, getLastColumnCellCoords, getTimeSlots, getWorkspaceCellPosition, isRowDirection } from '../booking-calendar.utils'
+import { getTimeSlots, HEADER_COLUMN_INDEX, HEADER_ROW_INDEX, isRowDirection, WORKSPACE_START_COLUMN_INDEX, WORKSPACE_START_ROW_INDEX } from '../booking-calendar.utils'
 
 interface UseCalendarCellsRenderOptions {
   container: HTMLElement | null
@@ -24,11 +24,11 @@ export function useCalendarCellRender(opts: MaybeRefOrGetter<UseCalendarCellsRen
     return getTimeSlots(state.value.timestampStart, state.value.timestampEnd, state.value.cellDuration)
   })
 
-  const workspaceStartColumn = computed(() => {
-    return state.value.leftTimestampColumn ? 2 : 1
-  })
+  const workspaceStartColumn = computed(() => WORKSPACE_START_COLUMN_INDEX)
 
-  const cellsInColumn = computed(() => timeSlots.value.length)
+  const workspaceStartRow = computed(() => WORKSPACE_START_ROW_INDEX)
+
+  const cellsInColumn = computed(() => Math.max(0, timeSlots.value.length - 1))
 
   const cellsInRow = computed(() => state.value.items)
 
@@ -41,10 +41,9 @@ export function useCalendarCellRender(opts: MaybeRefOrGetter<UseCalendarCellsRen
     const cells: CalendarCell[] = []
 
     for (let index = 0; index < cellsInColumn.value; index++) {
-      const { column, row } = getFirstColumnCellCoords(index, {
-        direction: state.value.direction,
-        workspaceStartColumn: workspaceStartColumn.value,
-      })
+      const { column, row } = isRowDirection(state.value.direction)
+        ? { column: workspaceStartColumn.value + index, row: HEADER_ROW_INDEX }
+        : { column: HEADER_COLUMN_INDEX, row: workspaceStartRow.value + index }
 
       cells.push({
         column,
@@ -62,14 +61,42 @@ export function useCalendarCellRender(opts: MaybeRefOrGetter<UseCalendarCellsRen
     return cells
   })
 
+  const lastColumnCells = computed(() => {
+    if (!state.value.rightTimestampColumn)
+      return []
+
+    const isRow = isRowDirection(state.value.direction)
+    const cellsCount = isRow ? cellsInRow.value : cellsInColumn.value
+    const cells: CalendarCell[] = []
+
+    for (let index = 0; index < cellsCount; index++) {
+      const { column, row } = isRow
+        ? { column: workspaceStartColumn.value + cellsInColumn.value, row: workspaceStartRow.value + index }
+        : { column: workspaceStartColumn.value + cellsInRow.value, row: workspaceStartRow.value + index }
+
+      cells.push({
+        column,
+        row,
+        width: 0,
+        height: 0,
+        subCell: 0,
+        subCellHeight: 0,
+        subCellWidth: 0,
+        styles: `--column: ${column}; --row: ${row}`,
+        type: CALENDAR_CELL_TYPE.LAST_COLUMN,
+      })
+    }
+
+    return cells
+  })
+
   const firstRowCells = computed(() => {
     const cells: CalendarCell[] = []
 
     for (let index = 0; index < cellsInRow.value; index++) {
-      const { column, row } = getFirstRowCellCoords(index, {
-        direction: state.value.direction,
-        workspaceStartColumn: workspaceStartColumn.value,
-      })
+      const { column, row } = isRowDirection(state.value.direction)
+        ? { column: HEADER_COLUMN_INDEX, row: workspaceStartRow.value + index }
+        : { column: workspaceStartColumn.value + index, row: HEADER_ROW_INDEX }
 
       cells.push({
         column,
@@ -87,46 +114,16 @@ export function useCalendarCellRender(opts: MaybeRefOrGetter<UseCalendarCellsRen
     return cells
   })
 
-  const lastColumnCells = computed(() => {
-    if (!state.value.rightTimestampColumn)
-      return []
-
-    const cellsCount = isRowDirection(state.value.direction) ? cellsInRow.value : cellsInColumn.value
-    const cells: CalendarCell[] = []
-
-    for (let index = 0; index < cellsCount; index++) {
-      const { column, row } = getLastColumnCellCoords(index, {
-        direction: state.value.direction,
-        workspaceStartColumn: workspaceStartColumn.value,
-        columnCells: cellsInColumn.value,
-        rowCells: cellsInRow.value,
-      })
-
-      cells.push({
-        column,
-        row,
-        width: 0,
-        height: 0,
-        subCell: 0,
-        subCellHeight: 0,
-        subCellWidth: 0,
-        styles: `--column: ${column}; --row: ${row}`,
-        type: isRowDirection(state.value.direction) ? CALENDAR_CELL_TYPE.LAST_ROW : CALENDAR_CELL_TYPE.LAST_COLUMN,
-      })
-    }
-
-    return cells
-  })
-
   const workspaceAreaCells = computed(() => {
     const cells: CalendarCell[] = []
 
     for (let index = 0; index < cellsInWorkspaceArea.value; index++) {
-      const { column, row } = getWorkspaceCellPosition(index, {
-        direction: state.value.direction,
-        workspaceStartColumn: workspaceStartColumn.value,
-        columnCells: cellsInColumn.value,
-      })
+      const rowInGroup = index % cellsInColumn.value
+      const groupIndex = Math.floor(index / cellsInColumn.value)
+
+      const { column, row } = isRowDirection(state.value.direction)
+        ? { column: workspaceStartColumn.value + rowInGroup, row: workspaceStartRow.value + groupIndex }
+        : { column: workspaceStartColumn.value + groupIndex, row: workspaceStartRow.value + rowInGroup }
 
       cells.push({
         column,
@@ -149,11 +146,15 @@ export function useCalendarCellRender(opts: MaybeRefOrGetter<UseCalendarCellsRen
   })
 
   const rows = computed(() => {
-    return isRowDirection(state.value.direction) ? cellsInRow.value : cellsInColumn.value
+    return isRowDirection(state.value.direction)
+      ? cellsInRow.value + 1
+      : cellsInColumn.value + 1
   })
 
   const columns = computed(() => {
-    return (isRowDirection(state.value.direction) ? cellsInColumn.value : cellsInRow.value) + (state.value.rightTimestampColumn ? 1 : 0)
+    return isRowDirection(state.value.direction)
+      ? cellsInColumn.value + 1 + (state.value.rightTimestampColumn ? 1 : 0)
+      : cellsInRow.value + 1 + (state.value.rightTimestampColumn ? 1 : 0)
   })
 
   watchDeep(() => toValue(opts), (newOpts) => {
