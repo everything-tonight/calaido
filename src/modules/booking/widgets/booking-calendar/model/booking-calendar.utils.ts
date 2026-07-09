@@ -1,13 +1,4 @@
-import type { CalendarDirection } from './booking-calendar.types'
 import { addMinutes, differenceInMinutes } from 'date-fns'
-import { CALENDAR_DIRECTION } from './booking-calendar.types'
-
-export const HEADER_ROW_INDEX = 1
-export const HEADER_COLUMN_INDEX = 1
-export const WORKSPACE_START_ROW_INDEX = 2
-export const WORKSPACE_START_COLUMN_INDEX = 2
-
-export const isRowDirection = (direction: CalendarDirection) => direction === CALENDAR_DIRECTION.ROW
 
 export function getTimeSlots(timestampStart: Date, timestampEnd: Date, timestampRange: number): Date[] {
   const slots = []

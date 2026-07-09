@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T, K">
-import { CALENDAR_CELL_TYPE, CALENDAR_DIRECTION, useCalendarCellRender } from ':modules/booking/widgets/booking-calendar/model'
-import { computed, useTemplateRef } from 'vue'
+import type { CalendarCellType } from ':modules/booking/widgets/booking-calendar/model'
+import { CALENDAR_CELL_TYPE, useCalendarCellRender } from ':modules/booking/widgets/booking-calendar/model'
+import { useTemplateRef } from 'vue'
 
 interface Props {
   options: {
@@ -8,9 +9,7 @@ interface Props {
     timestampEnd: Date
     cellDuration: number
     subCellDuration: number
-    direction: 'row' | 'column'
-    leftTimestampColumn: boolean
-    rightTimestampColumn: boolean
+    excludeAreas?: Omit<CalendarCellType, 'workspace'>[]
   }
   items: T[]
   events: K[]
@@ -18,9 +17,8 @@ interface Props {
 
 const { options, items, events: _events } = defineProps<Props>()
 
-const direction = computed(() => options.direction)
-
 const containerRef = useTemplateRef('container')
+const cellsRefs = useTemplateRef('cell')
 
 const {
   cells,
@@ -29,7 +27,12 @@ const {
 } = useCalendarCellRender(() => ({
   ...options,
   container: containerRef.value,
-  items: items.length,
+  cells: cellsRefs.value,
+  itemsCount: items.length,
+  hasFirstColumn: !options.excludeAreas?.includes('firstColumn'),
+  hasLastColumn: !options.excludeAreas?.includes('lastColumn'),
+  hasFirstRow: !options.excludeAreas?.includes('firstRow'),
+  hasLastRow: !options.excludeAreas?.includes('lastRow'),
 }))
 </script>
 
@@ -41,29 +44,28 @@ const {
     <time
       v-for="(cell, index) in cells"
       :key="index"
-      :ref="cell.type === CALENDAR_CELL_TYPE.FIRST_ROW ? setItemCellRef : undefined"
+      ref="cell"
       :style="cell.styles"
-      :data-cell-type="cell.type"
+      :data-type="cell.type"
     >
       <template v-if="cell.type === CALENDAR_CELL_TYPE.FIRST_ROW">
-        <div>
-          <slot name="item" />
-        </div>
+        <slot name="firstRow" v-bind="cell" />
+      </template>
+
+      <template v-if="cell.type === CALENDAR_CELL_TYPE.LAST_ROW">
+        <slot name="lastRow" v-bind="cell" />
       </template>
 
       <template v-else-if="cell.type === CALENDAR_CELL_TYPE.FIRST_COLUMN">
-        <span>col</span>
+        <slot name="firstColumn" v-bind="cell" />
       </template>
 
       <template v-else-if="cell.type === CALENDAR_CELL_TYPE.LAST_COLUMN">
-        <div v-if="direction === CALENDAR_DIRECTION.ROW">
-          <slot name="item" />
-        </div>
-        <span v-else>col</span>
+        <slot name="lastColumn" v-bind="cell" />
       </template>
 
-      <template v-else>
-        <span>cell</span>
+      <template v-else-if="cell.type === CALENDAR_CELL_TYPE.WORKSPACE">
+        <slot name="workspace" v-bind="cell" />
       </template>
     </time>
   </article>

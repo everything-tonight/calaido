@@ -6,13 +6,7 @@ export const CALENDAR_CELL_TYPE = {
   WORKSPACE: 'workspace',
 } as const
 
-export const CALENDAR_DIRECTION = {
-  ROW: 'row',
-  COLUMN: 'column',
-} as const
-
 export type CalendarCellType = typeof CALENDAR_CELL_TYPE[keyof typeof CALENDAR_CELL_TYPE]
-export type CalendarDirection = typeof CALENDAR_DIRECTION[keyof typeof CALENDAR_DIRECTION]
 
 export interface CalendarCell {
   column: number
@@ -22,6 +16,7 @@ export interface CalendarCell {
   subCell: number
   subCellWidth: number
   subCellHeight: number
+  timestamp: Date
   styles: string
   type: CalendarCellType
 }

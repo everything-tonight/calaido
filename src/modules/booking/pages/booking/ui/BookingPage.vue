@@ -7,6 +7,7 @@ import BookingCalendar from ':modules/booking/widgets/booking-calendar/ui/Bookin
 import { useBookingFilters } from ':modules/booking/widgets/booking-filters'
 import { useQuery } from '@pinia/colada'
 import { useSeoMeta } from '@unhead/vue'
+import { format } from 'date-fns'
 import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
 import { getBookingService } from '../api/booking-get.service'
@@ -88,16 +89,19 @@ watch(data, (booking) => {
           timestampEnd: restaurant.closing_time,
           cellDuration,
           subCellDuration,
-          direction: 'column',
-          leftTimestampColumn: true,
-          rightTimestampColumn: true,
         }"
         :items="tables.slice(0, 20)"
         :events="[]"
       >
-        <template #item>
-          <article class="w-40 h-40 bg-red-200">
-            Столик
+        <template #firstRow>
+          <article class="w-40 h-40">
+            s
+          </article>
+        </template>
+
+        <template #firstColumn="{ timestamp }">
+          <article class="h-40">
+            {{ format(timestamp, 'HH:mm') }}
           </article>
         </template>
       </BookingCalendar>
