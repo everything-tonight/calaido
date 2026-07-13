@@ -84,23 +84,32 @@ watch(data, (booking) => {
       </div>
 
       <BookingCalendar
-        :options="{
-          timestampStart: restaurant.opening_time,
-          timestampEnd: restaurant.closing_time,
-          cellDuration,
-          subCellDuration,
-        }"
+        :timestamp-start="restaurant.opening_time"
+        :timestamp-end="restaurant.closing_time"
+        :cell-duration="cellDuration"
+        :sub-cell-duration="subCellDuration"
         :items="tables.slice(0, 20)"
         :events="[]"
       >
-        <template #firstRow>
-          <article class="w-40 h-40">
-            s
+        <template #firstRow="{ size }">
+          <article class="w-40 h-20">
+            {{ size.width }}
+            {{ size.height }}
           </article>
         </template>
 
-        <template #firstColumn="{ timestamp }">
-          <article class="h-40">
+        <template #firstColumn="{ timestamp, size }">
+          <article class="w-20 h-40">
+            {{ size.width }}
+            {{ size.height }}
+            {{ format(timestamp, 'HH:mm') }}
+          </article>
+        </template>
+
+        <template #workspace="{ timestamp, size }">
+          <article>
+            {{ size.width }}
+            {{ size.height }}
             {{ format(timestamp, 'HH:mm') }}
           </article>
         </template>
